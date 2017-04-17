@@ -1,9 +1,10 @@
 let req = require('request-promise-native');
 let colors = require('colors');
+let os = require('os');
 
 let promiseGenerator = function* (listOfQuestions) {
   for (let question of listOfQuestions) {
-    yield req(question);
+    yield req.get(question);
   }
 }
 
@@ -11,14 +12,14 @@ async function printQuestions(baseUrl) {
   try {
     let listOfQuestions = await req.get(baseUrl);
     listOfQuestions = JSON.parse(listOfQuestions)._embedded.questions.map(x => x._links.self.href);
-    printQuestions(listOfQuestions);
 
     for (let promise of promiseGenerator(listOfQuestions)) {
-      let item = JSON.parse(await promise);
+      const item = JSON.parse(await promise);
       console.log(`Question title: ${item.title} - ${item._links.self.href}`.blue);
     }
-  } catch (err) {
-    console.log('Service unavailable! ');
+  } catch ({ error }) {
+    let serverError = JSON.parse(error);
+    console.log(`Status: ${serverError.status} ${os.EOL}Message: ${serverError.message}`);
   }
 }
 
